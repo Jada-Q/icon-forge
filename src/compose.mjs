@@ -29,9 +29,35 @@ export function placement(style, glyph, variant = 'rounded') {
   return { size: S, cx, cy, tileR, scale, gx, gy };
 }
 
-export function compose(style, { glyph, bg, fg, variant = 'rounded' }) {
+// 在一个 SVG 元素串里插入/覆盖某个属性
+function setAttr(el, name, value) {
+  const re = new RegExp(`\\s${name}\\s*=\\s*"[^"]*"`);
+  const attr = ` ${name}="${value}"`;
+  if (re.test(el)) return el.replace(re, attr);
+  return el.replace(/\s*\/?>$/, (m) => attr + m); // 插在自闭合 /> 或 > 前
+}
+
+// 按 opacity 存在与否分层上色：
+//   有 opacity 属性的 path = duotone 背景层 → secondary（给了就拉满不透明，否则退回 primary 浓淡）
+//   无 opacity 的 path     = 主细节层       → primary
+//   fill="none" 的 path    = 包围框/透明层  → 不动
+export function recolorGlyph(inner, { primary, secondary, secondaryOpacity = 1 }) {
+  return inner.replace(/<(?:path|circle|rect|ellipse|polygon|polyline|line)\b[^>]*>/g, (el) => {
+    if (/fill\s*=\s*"none"/i.test(el)) return el;
+    const isBackgroundLayer = /\bopacity\s*=/.test(el);
+    if (isBackgroundLayer) {
+      el = setAttr(el, 'fill', secondary || primary);
+      if (secondary) el = setAttr(el, 'opacity', String(secondaryOpacity));
+      return el;
+    }
+    return setAttr(el, 'fill', primary);
+  });
+}
+
+export function compose(style, { glyph, bg, fg, fg2, secondaryOpacity, variant = 'rounded' }) {
   const bgHex = resolveColor(style, bg);
-  const fgHex = resolveColor(style, fg);
+  const primary = resolveColor(style, fg);
+  const secondary = fg2 ? resolveColor(style, fg2) : null;
   const { size: S, cx, cy, tileR, scale, gx, gy } = placement(style, glyph, variant);
 
   const tileShape =
@@ -39,10 +65,10 @@ export function compose(style, { glyph, bg, fg, variant = 'rounded' }) {
       ? `<rect x="0" y="0" width="${S}" height="${S}" fill="${bgHex}"/>`
       : `<path d="${squirclePath(cx, cy, tileR)}" fill="${bgHex}"/>`;
 
-  // currentColor + fill 双写，覆盖 phosphor(currentColor) 和 tabler(无显式 fill) 两种
+  const recolored = recolorGlyph(glyph.inner, { primary, secondary, secondaryOpacity });
   const glyphLayer =
-    `<g transform="translate(${gx.toFixed(2)} ${gy.toFixed(2)}) scale(${scale.toFixed(4)})" ` +
-    `fill="${fgHex}" color="${fgHex}">${glyph.inner}</g>`;
+    `<g transform="translate(${gx.toFixed(2)} ${gy.toFixed(2)}) scale(${scale.toFixed(4)})">` +
+    `${recolored}</g>`;
 
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" width="${S}" height="${S}" viewBox="0 0 ${S} ${S}">` +
