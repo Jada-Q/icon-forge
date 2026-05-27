@@ -19,10 +19,12 @@ export async function buildSeries(style) {
     const weight = app.weight || style.glyph.weight;
     const bg = app.bg || style.defaults.bg;
     const fg = app.fg || style.defaults.fg;
+    const fg2 = app.fg2 || null;
+    const secondaryOpacity = app.secondaryOpacity ?? 1;
     try {
       const glyph = resolveGlyph(app.glyph, { library, weight });
       const outDir = join(ROOT, 'output', app.name);
-      await exportAll(style, { glyph, bg, fg }, outDir);
+      await exportAll(style, { glyph, bg, fg, fg2, secondaryOpacity }, outDir);
       results.push({ ...app, ok: true, bg, fg });
     } catch (e) {
       results.push({ ...app, ok: false, err: e.message.split('\n')[0] });

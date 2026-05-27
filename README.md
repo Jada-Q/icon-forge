@@ -63,9 +63,23 @@ cp ~/Desktop/Projects/icon-forge/output/myapp/icon.icns      <新项目>/build/
 cp ~/Desktop/Projects/icon-forge/output/myapp/web/* <新项目>/public/   # web 项目
 ```
 
+## Duotone 真双色
+
+Phosphor `duotone` 权重每个字形分两层（背景大形 + 前景细节）。给 `--fg2` 就把两层映射成两个**独立**颜色（背景层默认拉满不透明），做出「珊瑚底+黑细节」那种 bold 两色：
+
+```bash
+# 黑圆盘 + 白经纬线，放在 sky 底上
+icon-forge demo --glyph globe --weight duotone --bg sky --fg white --fg2 black
+
+# 柔和 duotone（背景层半透明）：加 --fg2-opacity 0.35
+```
+
+不给 `--fg2` 时 `duotone` 退回同色调浓淡（主色 + 同色 20%）。`series.json` 里写 `"fg2"` / `"secondaryOpacity"` 字段同理。
+
 ## CLI 选项
 
 ```
-icon-forge <app名> --glyph <字形> [--bg 色] [--fg 色] [--lib phosphor|tabler] [--weight fill|duotone|bold]
+icon-forge <app名> --glyph <字形> [--bg 色] [--fg 色] [--fg2 色] [--fg2-opacity 0-1]
+                   [--lib phosphor|tabler] [--weight fill|duotone|bold] [--out 目录]
 icon-forge --all          # 按 series.json 重生全系列 + 写 output/index.html
 ```
