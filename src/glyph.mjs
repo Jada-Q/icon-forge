@@ -6,12 +6,12 @@ const PHOSPHOR = join(ROOT, 'node_modules/@phosphor-icons/core/assets');
 const TABLER = join(ROOT, 'node_modules/@tabler/icons/icons');
 
 // phosphor: assets/<weight>/<name>-<weight>.svg（regular 无后缀）
-function phosphorFile(name, weight) {
+export function phosphorFile(name, weight) {
   const suffix = weight === 'regular' ? '' : `-${weight}`;
   return { dir: join(PHOSPHOR, weight), file: join(PHOSPHOR, weight, `${name}${suffix}.svg`) };
 }
 // tabler: icons/<filled|outline>/<name>.svg
-function tablerFile(name, weight) {
+export function tablerFile(name, weight) {
   const sub = weight === 'filled' ? 'filled' : 'outline';
   return { dir: join(TABLER, sub), file: join(TABLER, sub, `${name}.svg`) };
 }
