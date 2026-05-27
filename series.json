@@ -1,10 +1,10 @@
 {
-  "_note": "你所有 app 的图标定义。改 style.json 调风格后，跑 `node src/cli.mjs --all` 一键重生全系列。",
+  "_note": "你所有 app 的图标定义。改 style.json 调风格后，跑 `node src/cli.mjs --all` 一键重生全系列。weight=duotone + fg2 = 真双色。",
   "apps": [
-    { "name": "tide-pixels",  "glyph": "waves",         "bg": "sky",    "fg": "white" },
-    { "name": "quake-globe",  "glyph": "globe",         "bg": "coral",  "fg": "white" },
+    { "name": "tide-pixels",  "glyph": "waves",         "bg": "sky",    "fg": "white", "weight": "duotone", "fg2": "black" },
+    { "name": "quake-globe",  "glyph": "globe",         "bg": "coral",  "fg": "white", "weight": "duotone", "fg2": "black" },
     { "name": "sky-traffic",  "glyph": "airplane-tilt", "bg": "yellow", "fg": "black" },
-    { "name": "bay-ships",    "glyph": "boat",          "bg": "green",  "fg": "white" },
+    { "name": "bay-ships",    "glyph": "boat",          "bg": "green",  "fg": "white", "weight": "duotone", "fg2": "black" },
     { "name": "subway-pulse", "glyph": "train-simple",  "bg": "pink",   "fg": "white" },
     { "name": "moon-phase",   "glyph": "moon",          "bg": "black",  "fg": "yellow" }
   ]
