@@ -1,0 +1,40 @@
+{
+  "name": "Jada Bold Flat",
+  "version": 1,
+  "_note": "改这一个文件 = 改整个系列风格。palette 从参考图真实采样。",
+
+  "canvas": { "size": 1024 },
+
+  "palette": {
+    "black":  "#060606",
+    "pink":   "#FA8D9F",
+    "coral":  "#FA6744",
+    "yellow": "#FAB53C",
+    "green":  "#68DE5E",
+    "sky":    "#48C2F9",
+    "white":  "#FFFFFF"
+  },
+
+  "tile": {
+    "shape": "squircle",
+    "cornerRatio": 0.2237,
+    "_cornerRatio_note": "占边长比例，0.2237 ≈ Apple 图标圆角",
+    "macInsetRatio": 0.10,
+    "_macInset_note": "macOS .icns 在 1024 画布里留 ~10% 透明边，tile 居中"
+  },
+
+  "glyph": {
+    "library": "phosphor",
+    "_library_options": "phosphor | tabler",
+    "weight": "fill",
+    "_weight_options": "phosphor: fill|duotone|bold | tabler: filled|outline",
+    "paddingRatio": 0.24,
+    "_padding_note": "字形在 tile 内的留白比例，越大字形越小"
+  },
+
+  "defaults": {
+    "bg": "sky",
+    "fg": "white",
+    "_note": "每个 app 可用 --bg / --fg 覆盖，未指定走这里"
+  }
+}
