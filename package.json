@@ -8,6 +8,7 @@
     "icon-forge": "src/cli.mjs"
   },
   "scripts": {
+    "test": "node --test",
     "demo": "node src/cli.mjs quake-globe --glyph globe --bg sky --fg white"
   },
   "dependencies": {

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { loadStyle, ROOT } from './style.mjs';
 import { resolveGlyph } from './glyph.mjs';
 import { exportAll } from './export.mjs';
@@ -21,7 +21,9 @@ const USAGE =
   '  --fg <色>       字形颜色，默认走 style.json\n' +
   '  --lib <库>      phosphor | tabler，默认 style.json\n' +
   '  --weight <权重> phosphor: fill|duotone|bold / tabler: filled，默认 style.json\n' +
-  '例: icon-forge quake-globe --glyph globe --bg sky --fg white';
+  '  --out <目录>    产物写到该目录（相对当前 cwd），默认 icon-forge/output\n' +
+  '例: icon-forge quake-globe --glyph globe --bg sky --fg white\n' +
+  '    icon-forge myapp --glyph rocket --out .   # 写进当前项目';
 
 async function main() {
   const { app, opt } = parseArgs(process.argv);
@@ -47,7 +49,8 @@ async function main() {
   const fg = opt.fg || style.defaults.fg;
 
   const glyph = resolveGlyph(opt.glyph, { library, weight });
-  const outDir = join(ROOT, 'output', app);
+  const base = opt.out ? resolve(process.cwd(), opt.out) : join(ROOT, 'output');
+  const outDir = join(base, app);
   await exportAll(style, { glyph, bg, fg }, outDir);
 
   console.log(`✓ ${app}  (${library}/${weight} ${opt.glyph}, bg=${bg} fg=${fg})`);
