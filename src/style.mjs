@@ -8,10 +8,17 @@ export function loadStyle(path = join(ROOT, 'icon-style.json')) {
   return JSON.parse(readFileSync(path, 'utf8'));
 }
 
+const HEX_RE = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
+
 // 把 palette key（如 "sky"）或裸 hex（如 "#48C2F9"）解析成 hex
 export function resolveColor(style, keyOrHex) {
   if (!keyOrHex) return null;
-  if (keyOrHex.startsWith('#')) return keyOrHex;
+  if (keyOrHex.startsWith('#')) {
+    if (!HEX_RE.test(keyOrHex)) {
+      throw new Error(`颜色格式不对 "${keyOrHex}"，需要 #RGB 或 #RRGGBB`);
+    }
+    return keyOrHex;
+  }
   const hex = style.palette[keyOrHex];
   if (!hex) {
     throw new Error(
