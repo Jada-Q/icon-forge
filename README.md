@@ -63,6 +63,32 @@ cp ~/Desktop/Projects/icon-forge/output/myapp/icon.icns      <新项目>/build/
 cp ~/Desktop/Projects/icon-forge/output/myapp/web/* <新项目>/public/   # web 项目
 ```
 
+## 加一个新图标库
+
+内置 Phosphor / Tabler（单色，按调色板重上色）+ Flat Color（多色，保留原色）。库由 `src/glyph.mjs` 的 `LIBRARIES` 注册表管理——**加一个库 = 放进 SVG + 加一条配置**。
+
+1. **拿到库的 SVG**（确认许可商用 OK）：`npm i <pack>`，或把一个 SVG 文件夹放进项目。买的彩色包（粉紫俏皮那种）解压出 SVG 即可。
+2. **在 `src/glyph.mjs` 的 `LIBRARIES` 加一条**：
+
+```js
+import { join } from 'node:path';
+const MYPACK = join(ROOT, 'node_modules/<pack>/svg'); // 或你的文件夹
+
+mypack: {
+  label: '我的彩色包',
+  kind: 'color',                 // 多色保留原色用 'color'；单色重上色用 'mono'
+  weights: ['color'], defaultWeight: 'color',
+  locate: (name) => ({ dir: MYPACK, file: join(MYPACK, `${name}.svg`) }),
+  strip: () => '',               // 文件名里要从字形名剥掉的后缀（如 phosphor 的 -fill）
+},
+```
+
+3. `npm run pick` 重启——新库自动出现在选择器的「库」下拉里。
+   - `mono` 库：用你的调色板重上色（fg / duotone 生效）
+   - `color` 库：保留原色直接放进 tile（只选底色 tile）
+
+**一次性的单张图**（不成系列）：不用建库，直接走选择器的「上传图片」。
+
 ## Duotone 真双色
 
 Phosphor `duotone` 权重每个字形分两层（背景大形 + 前景细节）。给 `--fg2` 就把两层映射成两个**独立**颜色（背景层默认拉满不透明），做出「珊瑚底+黑细节」那种 bold 两色：
