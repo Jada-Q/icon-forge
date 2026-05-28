@@ -13,6 +13,8 @@ import { exportFromImage, composeImagePng } from './image-icon.mjs';
 const PORT = 4321;
 const style = loadStyle();
 const PROJECTS_DIR = join(process.env.HOME, 'Desktop', 'Projects');
+const LSREGISTER =
+  '/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister';
 
 function send(res, status, body, type = 'application/json') {
   res.writeHead(status, { 'Content-Type': type, 'Access-Control-Allow-Origin': '*' });
@@ -63,6 +65,13 @@ function placeIntoProject(outDir, project) {
           placed.push(`build/${f} 内 AppIcon.icns`);
         }
         try { const t = new Date(); utimesSync(join(buildDir, f), t, t); } catch {}
+        // 同名已安装副本（/Applications）一并更新——否则你 dock 里看到的那个不变
+        const installedRes = join('/Applications', f, 'Contents', 'Resources', 'AppIcon.icns');
+        if (existsSync(join('/Applications', f, 'Contents', 'Resources'))) {
+          copyFileSync(join(outDir, 'icon.icns'), installedRes);
+          try { const t = new Date(); utimesSync(join('/Applications', f), t, t); } catch {}
+          placed.push(`已安装副本 /Applications/${f}`);
+        }
       }
     }
   } else if (project.type === 'web') {
@@ -147,6 +156,30 @@ const server = createServer(async (req, res) => {
 
     if (p === '/api/projects') {
       return send(res, 200, listProjects());
+    }
+
+    // 刷新 macOS 图标缓存（重注册相关 .app + 重启 Dock）
+    if (p === '/api/refresh-icons' && req.method === 'POST') {
+      let body = '';
+      for await (const c of req) body += c;
+      const o = JSON.parse(body || '{}');
+      const apps = [];
+      if (o.target) {
+        const proj = listProjects().find((x) => x.name === o.target);
+        if (proj && proj.type === 'mac') {
+          const buildDir = join(proj.path, 'build');
+          if (existsSync(buildDir)) {
+            for (const f of readdirSync(buildDir)) {
+              if (!f.endsWith('.app')) continue;
+              apps.push(join(buildDir, f));
+              if (existsSync(join('/Applications', f))) apps.push(join('/Applications', f));
+            }
+          }
+        }
+      }
+      for (const a of apps) { try { execFileSync(LSREGISTER, ['-f', a]); } catch {} }
+      try { execFileSync('killall', ['Dock']); } catch {}
+      return send(res, 200, { ok: true, refreshed: apps.map((a) => a.split('/').pop()) });
     }
 
     // 在 Finder 里打开产物文件夹

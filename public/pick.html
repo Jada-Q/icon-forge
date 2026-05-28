@@ -278,6 +278,12 @@ $('target').onchange = (e) => { S.target = e.target.value; if (S.target) $('app'
 
 /* ---------- 生成 ---------- */
 function reveal(app) { fetch('/api/reveal?app=' + encodeURIComponent(app)); }
+async function refreshIcons(target) {
+  const m = $('refreshmsg'); if (m) m.textContent = '刷新中…';
+  const r = await fetch('/api/refresh-icons', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ target }) }).then((x) => x.json());
+  if (m) m.textContent = '✓ 已刷新 ' + (r.refreshed || []).join('、') + ' —— 运行中的 app 仍需 ⌘Q 重开';
+}
 
 $('go').onclick = async () => {
   const app = $('app').value.trim() || S.glyph || 'icon';
@@ -316,6 +322,9 @@ $('go').onclick = async () => {
         `<a href="/output/${app}/web/favicon.ico" download>favicon.ico</a></div>` +
       `<div style="font-size:11px;color:#86868b;margin:6px 0 10px">用法：<b>.icns</b>→Mac app ｜ <b>web/</b> 整个→网站 public/ ｜ <b>appiconset</b>→拖进 Xcode</div>` +
       (j.placed && j.placed.length ? `<div style="font-size:11px;color:#86868b;margin-bottom:4px">已放置：${j.placed.join('、')}</div>` : '') +
+      (j.placed && j.placed.some((x) => x.includes('.app') || x.includes('icns')) ?
+        `<button type="button" onclick="refreshIcons('${S.target}')" style="width:100%;margin:6px 0 4px;padding:9px;border-radius:9px;border:1px solid var(--line);background:#fff;cursor:pointer;font:inherit">🔄 刷新系统图标（dock 没变点这个）</button>` +
+        `<div id="refreshmsg" style="font-size:11px;color:#86868b;margin-bottom:8px">运行中的 app 还要 ⌘Q 退出重开才会变</div>` : '') +
       `<div style="font-size:11px;color:#86868b;word-break:break-all">${j.outDir}</div>`;
   } catch (e) {
     r.className = 'result err'; r.textContent = '✗ ' + e.message;
