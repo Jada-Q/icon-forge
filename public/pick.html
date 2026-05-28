@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>icon-forge 选择器</title>
+<style>
+  :root { --ink:#1d1d1f; --sub:#86868b; --line:#e3e3e6; --bg:#f5f5f7; --accent:#0071e3; }
+  * { box-sizing:border-box; }
+  body { font:14px/1.5 -apple-system,system-ui,"PingFang SC",sans-serif; color:var(--ink); background:var(--bg); margin:0; }
+  header { padding:16px 24px; background:#fff; border-bottom:1px solid var(--line);
+           display:flex; align-items:center; gap:14px; flex-wrap:wrap; position:sticky; top:0; z-index:5; }
+  header h1 { font-size:17px; margin:0; }
+  input[type=search], select { font:14px inherit; padding:8px 12px; border:1px solid var(--line); border-radius:9px; background:#fff; }
+  input[type=search] { width:220px; }
+  .seg { display:inline-flex; border:1px solid var(--line); border-radius:9px; overflow:hidden; }
+  .seg button { border:0; background:#fff; padding:8px 14px; font:13px inherit; cursor:pointer; color:var(--sub); }
+  .seg button.on { background:var(--accent); color:#fff; }
+  main { display:grid; grid-template-columns:1fr 360px; height:calc(100vh - 60px); }
+  .grid-wrap { overflow-y:auto; padding:18px 24px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(72px,1fr)); gap:10px; }
+  .tile { aspect-ratio:1; border:1px solid var(--line); border-radius:12px; background:#fff;
+          display:flex; align-items:center; justify-content:center; cursor:pointer; padding:14px; position:relative; }
+  .tile svg { width:100%; height:100%; }
+  .tile:hover { border-color:#c7c7cc; }
+  .tile.on { border-color:var(--accent); box-shadow:0 0 0 2px var(--accent); }
+  .tile .nm { position:absolute; bottom:-17px; left:0; right:0; text-align:center; font-size:9px; color:var(--sub);
+              white-space:nowrap; overflow:hidden; text-overflow:ellipsis; opacity:0; }
+  .tile:hover .nm { opacity:1; }
+  .empty { color:var(--sub); padding:40px; text-align:center; grid-column:1/-1; }
+  /* 上传区 */
+  #imgpane { display:none; padding:24px; overflow-y:auto; }
+  .drop { border:2px dashed #c7c7cc; border-radius:16px; padding:48px 24px; text-align:center; cursor:pointer; background:#fff; }
+  .drop.over { border-color:var(--accent); background:#f0f7ff; }
+  .drop p { margin:6px 0; }
+  .drop .big { font-size:16px; font-weight:600; }
+  .fname { margin-top:14px; color:var(--accent); font-size:13px; }
+  aside { background:#fff; border-left:1px solid var(--line); padding:24px; overflow-y:auto; }
+  .preview { width:200px; height:200px; margin:0 auto 8px; display:block; }
+  .preview svg, .preview canvas { width:100%; height:100%; border-radius:14px; display:block; }
+  .pname { text-align:center; color:var(--sub); font-size:13px; margin-bottom:18px; min-height:18px; }
+  h3 { font-size:12px; text-transform:uppercase; letter-spacing:.04em; color:var(--sub); margin:18px 0 8px; }
+  .sw-row { display:flex; gap:8px; flex-wrap:wrap; }
+  .sw { width:30px; height:30px; border-radius:8px; cursor:pointer; box-shadow:inset 0 0 0 1px rgba(0,0,0,.12); position:relative; }
+  .sw.on::after { content:""; position:absolute; inset:-4px; border:2px solid var(--accent); border-radius:11px; }
+  label.fld { display:block; margin:14px 0 0; }
+  label.fld span { display:block; font-size:12px; color:var(--sub); margin-bottom:5px; }
+  select, input.txt { width:100%; }
+  input.txt { font:14px inherit; padding:8px 12px; border:1px solid var(--line); border-radius:9px; }
+  input[type=range] { width:100%; }
+  .chk { display:flex; align-items:center; gap:8px; margin:14px 0 0; font-size:13px; cursor:pointer; }
+  button.go { width:100%; margin-top:20px; padding:12px; border:0; border-radius:11px; background:var(--accent); color:#fff; font:600 15px inherit; cursor:pointer; }
+  button.go:disabled { background:#c7c7cc; cursor:default; }
+  .result { margin-top:12px; font-size:13px; padding:10px 12px; border-radius:9px; display:none; }
+  .result.ok { background:#e8f6ec; color:#1a7f37; display:block; }
+  .result.err { background:#fdecea; color:#c2280f; display:block; }
+  /* 模式可见性 */
+  .img-only { display:none; }
+  body.mode-img .img-only { display:block; }
+  body.mode-img .lib-only { display:none; }
+  body.mode-img #imgpane { display:block; }
+  body.mode-img #libpane { display:none; }
+  body.lib-color .recolor { display:none !important; }
+  #lib { max-width:140px; }
+</style>
+</head>
+<body class="mode-lib">
+<header>
+  <h1>🎨 icon-forge</h1>
+  <div class="seg" id="mode">
+    <button data-m="lib" class="on">图标库</button>
+    <button data-m="img">上传图片</button>
+  </div>
+  <span class="lib-only" style="display:contents">
+    <select id="lib"></select>
+    <input type="search" id="q" placeholder="搜图标（英文，如 camera / music / globe）">
+    <div class="seg recolor" id="weight"></div>
+    <span class="sub" id="count"></span>
+  </span>
+</header>
+
+<main>
+  <div>
+    <div class="grid-wrap" id="libpane"><div class="grid" id="grid"><div class="empty">加载中…</div></div></div>
+    <div id="imgpane">
+      <div class="drop" id="drop">
+        <p class="big">把图片拖到这里</p>
+        <p class="sub">或点击选择 · PNG / SVG / JPG</p>
+        <p class="sub">设计师给的 logo、买的图标包里的图，都行</p>
+        <div class="fname" id="fname"></div>
+      </div>
+      <input type="file" id="file" accept="image/*,.svg" hidden>
+    </div>
+  </div>
+
+  <aside>
+    <div class="preview" id="preview"></div>
+    <div class="pname" id="pname">先选一个图标 / 上传一张图</div>
+
+    <h3>底色 background</h3>
+    <div class="sw-row" id="bg"></div>
+
+    <div class="lib-only recolor">
+      <h3>图标色 foreground</h3>
+      <div class="sw-row" id="fg"></div>
+      <div id="fg2box" style="display:none">
+        <h3>第二色 duotone（背景层）</h3>
+        <div class="sw-row" id="fg2"></div>
+      </div>
+    </div>
+
+    <div class="img-only">
+      <label class="chk"><input type="checkbox" id="fullbleed"> 整图铺满（不加底色，只圆角）</label>
+      <label class="fld"><span>留白 padding（铺满时忽略）</span>
+        <input type="range" id="padding" min="0" max="35" value="18"></label>
+    </div>
+
+    <label class="fld"><span>放进哪个项目？（自动放对位置）</span>
+      <select id="target"><option value="">不放，只生成到 output/</option></select>
+    </label>
+    <label class="fld"><span>图标名 / app 名</span>
+      <input class="txt" id="app" placeholder="my-app"></label>
+
+    <button class="go" id="go" disabled>生成并放进去</button>
+    <div class="result" id="result"></div>
+  </aside>
+</main>
+
+<script>
+const S = { mode:'lib', lib:'phosphor', weight:'fill', glyph:null, bg:'sky', fg:'white', fg2:'black',
+            target:'', padding:0.18, fullBleed:false, imageData:null };
+let palette = {};
+let libs = [];
+const $ = (id) => document.getElementById(id);
+const api = (p) => fetch(p).then(r => r.json());
+
+async function init() {
+  const cfg = await api('/api/config');
+  palette = cfg.palette; S.bg = cfg.defaults.bg; S.fg = cfg.defaults.fg;
+  buildSwatches('bg'); buildSwatches('fg'); buildSwatches('fg2');
+  libs = cfg.libraries; buildLibs();
+  const projs = await api('/api/projects');
+  for (const pr of projs) {
+    const o = document.createElement('option');
+    o.value = pr.name; o.textContent = `${pr.name}  [${pr.type}]`;
+    $('target').appendChild(o);
+  }
+  search('');
+}
+
+function buildSwatches(which) {
+  const box = $(which); box.innerHTML = '';
+  for (const [k, hex] of Object.entries(palette)) {
+    const d = document.createElement('div');
+    d.className = 'sw' + (S[which] === k ? ' on' : '');
+    d.style.background = hex; d.title = k;
+    d.onclick = () => { S[which] = k; buildSwatches(which); preview(); };
+    box.appendChild(d);
+  }
+}
+
+/* ---------- 库选择 ---------- */
+const WLABEL = { fill:'实心 fill', duotone:'双色 duotone', bold:'粗体 bold', regular:'常规 regular',
+                 filled:'实心 filled', outline:'线条 outline', color:'彩色' };
+function curLib() { return libs.find(l => l.id === S.lib) || libs[0]; }
+function buildLibs() {
+  const sel = $('lib'); sel.innerHTML = '';
+  for (const l of libs) {
+    const o = document.createElement('option');
+    o.value = l.id; o.textContent = l.label + (l.kind === 'color' ? ' 🎨' : '');
+    sel.appendChild(o);
+  }
+  sel.value = S.lib; applyLib();
+}
+function applyLib() {
+  const l = curLib(); S.libKind = l.kind; S.weight = l.defaultWeight;
+  document.body.classList.toggle('lib-color', l.kind === 'color');
+  buildWeights();
+}
+function buildWeights() {
+  const seg = $('weight'); seg.innerHTML = '';
+  for (const w of curLib().weights) {
+    const b = document.createElement('button');
+    b.dataset.w = w; b.textContent = WLABEL[w] || w;
+    if (w === S.weight) b.classList.add('on');
+    seg.appendChild(b);
+  }
+}
+$('lib').onchange = (e) => { S.lib = e.target.value; S.glyph = null; applyLib(); search($('q').value); preview(); };
+
+/* ---------- 图标库模式 ---------- */
+let stim;
+function search(q) {
+  clearTimeout(stim);
+  stim = setTimeout(async () => {
+    const items = await api(`/api/search?q=${encodeURIComponent(q)}&weight=${S.weight}&lib=${S.lib}`);
+    const g = $('grid'); g.innerHTML = '';
+    $('count').textContent = items.length ? `${items.length} 个` : '';
+    if (!items.length) { g.innerHTML = '<div class="empty">没找到，换个英文词试试</div>'; return; }
+    for (const it of items) {
+      const t = document.createElement('div');
+      t.className = 'tile' + (S.glyph === it.name ? ' on' : '');
+      t.innerHTML = it.svg + `<span class="nm">${it.name}</span>`;
+      t.onclick = () => { S.glyph = it.name; document.querySelectorAll('.tile.on').forEach(e=>e.classList.remove('on')); t.classList.add('on'); pickGlyph(it.name); };
+      g.appendChild(t);
+    }
+  }, 180);
+}
+function pickGlyph(name) {
+  $('pname').textContent = name;
+  if (!$('app').value) $('app').value = S.target || name;
+  $('go').disabled = false; preview();
+}
+
+/* ---------- 上传图片模式 ---------- */
+function loadFile(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    S.imageData = reader.result;
+    $('fname').textContent = '✓ ' + file.name;
+    $('pname').textContent = file.name;
+    if (!$('app').value) $('app').value = S.target || file.name.replace(/\.[^.]+$/, '');
+    $('go').disabled = false; preview();
+  };
+  reader.readAsDataURL(file);
+}
+$('file').onchange = (e) => loadFile(e.target.files[0]);
+$('drop').onclick = () => $('file').click();
+$('drop').ondragover = (e) => { e.preventDefault(); $('drop').classList.add('over'); };
+$('drop').ondragleave = () => $('drop').classList.remove('over');
+$('drop').ondrop = (e) => { e.preventDefault(); $('drop').classList.remove('over'); loadFile(e.dataTransfer.files[0]); };
+$('fullbleed').onchange = (e) => { S.fullBleed = e.target.checked; preview(); };
+$('padding').oninput = (e) => { S.padding = e.target.value / 100; preview(); };
+
+/* ---------- 预览 ---------- */
+let ptim;
+function preview() {
+  clearTimeout(ptim);
+  ptim = setTimeout(() => (S.mode === 'lib' ? previewGlyph() : previewImage()), 120);
+}
+async function previewGlyph() {
+  if (!S.glyph) return;
+  const u = `/api/preview?glyph=${S.glyph}&weight=${S.weight}&lib=${S.lib}&bg=${S.bg}&fg=${S.fg}`
+    + (S.weight === 'duotone' ? `&fg2=${S.fg2}` : '');
+  $('preview').innerHTML = await fetch(u).then(r => r.text());
+}
+async function previewImage() {
+  if (!S.imageData) return;
+  $('preview').style.opacity = '0.5';
+  const resp = await fetch('/api/preview-image', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ image: S.imageData, bg: S.bg, padding: S.padding, fullBleed: S.fullBleed }) });
+  const url = URL.createObjectURL(await resp.blob());
+  $('preview').innerHTML = `<img src="${url}" style="width:100%;height:100%;border-radius:14px">`;
+  $('preview').style.opacity = '1';
+}
+
+/* ---------- 模式 / weight 切换 ---------- */
+$('mode').onclick = (e) => {
+  if (!e.target.dataset.m) return;
+  S.mode = e.target.dataset.m;
+  [...$('mode').children].forEach(b => b.classList.toggle('on', b === e.target));
+  document.body.className = 'mode-' + S.mode;
+  const has = S.mode === 'lib' ? S.glyph : S.imageData;
+  $('go').disabled = !has;
+  $('pname').textContent = has ? $('pname').textContent : (S.mode === 'lib' ? '先选一个图标' : '上传一张图');
+  preview();
+};
+$('q').oninput = (e) => search(e.target.value);
+$('weight').onclick = (e) => {
+  if (!e.target.dataset.w) return;
+  S.weight = e.target.dataset.w;
+  [...$('weight').children].forEach(b => b.classList.toggle('on', b === e.target));
+  $('fg2box').style.display = S.weight === 'duotone' ? 'block' : 'none';
+  search($('q').value); preview();
+};
+$('target').onchange = (e) => { S.target = e.target.value; if (S.target) $('app').value = S.target; };
+
+/* ---------- 生成 ---------- */
+function reveal(app) { fetch('/api/reveal?app=' + encodeURIComponent(app)); }
+
+$('go').onclick = async () => {
+  const app = $('app').value.trim() || S.glyph || 'icon';
+  $('go').disabled = true; $('go').textContent = '生成中…';
+  const r = $('result'); r.className = 'result';
+  try {
+    let resp;
+    if (S.mode === 'lib') {
+      resp = await fetch('/api/generate', { method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ app, glyph:S.glyph, weight:S.weight, lib:S.lib, bg:S.bg, fg:S.fg,
+          fg2: S.weight==='duotone'?S.fg2:null, target:S.target }) });
+    } else {
+      resp = await fetch('/api/generate-image', { method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ app, image:S.imageData, bg:S.bg, padding:S.padding, fullBleed:S.fullBleed, target:S.target }) });
+    }
+    const j = await resp.json();
+    if (!resp.ok) throw new Error(j.error || '失败');
+    const t = Date.now();
+    const big = `/output/${app}/icon-1024.png?t=${t}`;
+    const strip = [[96, 192], [48, 48], [32, 32], [16, 16]].map(([px, src]) =>
+      `<div style="text-align:center"><img src="/output/${app}/web/icon-${src}.png?t=${t}" style="width:${px}px;height:${px}px;display:block;margin:0 auto 2px"><span style="font-size:10px;color:#86868b">${px}px</span></div>`
+    ).join('');
+    r.className = 'result ok';
+    r.innerHTML =
+      `<div style="font-weight:600;margin-bottom:10px">${j.placed && j.placed.length ? `✓ 已生成并放进 <b>${S.target}</b>` : '✓ 已生成'}</div>` +
+      `<img src="${big}" style="width:128px;height:128px;display:block;margin:0 auto 12px;box-shadow:0 4px 16px rgba(0,0,0,.15);border-radius:28px">` +
+      `<div style="font-size:11px;color:#86868b;margin-bottom:8px">↓ 小尺寸实际效果（dock / 浏览器标签）——认得出就 OK</div>` +
+      `<div style="display:flex;gap:16px;align-items:flex-end;justify-content:center;margin-bottom:14px">${strip}</div>` +
+      `<div style="display:flex;gap:8px;margin-bottom:10px">` +
+        `<a href="/api/zip?app=${encodeURIComponent(app)}" style="flex:1;text-align:center;padding:9px;border-radius:9px;background:var(--accent);color:#fff;text-decoration:none;font-weight:600">⬇︎ 下载 zip</a>` +
+        `<button type="button" onclick="reveal('${app}')" style="flex:1;padding:9px;border-radius:9px;border:1px solid var(--line);background:#fff;cursor:pointer;font:inherit">📂 Finder 打开</button>` +
+      `</div>` +
+      `<div style="font-size:11px;color:#86868b;line-height:2">单个下载：` +
+        `<a href="/output/${app}/icon.icns" download>icon.icns</a> · ` +
+        `<a href="/output/${app}/icon-1024.png" download>1024.png</a> · ` +
+        `<a href="/output/${app}/web/favicon.ico" download>favicon.ico</a></div>` +
+      `<div style="font-size:11px;color:#86868b;margin:6px 0 10px">用法：<b>.icns</b>→Mac app ｜ <b>web/</b> 整个→网站 public/ ｜ <b>appiconset</b>→拖进 Xcode</div>` +
+      (j.placed && j.placed.length ? `<div style="font-size:11px;color:#86868b;margin-bottom:4px">已放置：${j.placed.join('、')}</div>` : '') +
+      `<div style="font-size:11px;color:#86868b;word-break:break-all">${j.outDir}</div>`;
+  } catch (e) {
+    r.className = 'result err'; r.textContent = '✗ ' + e.message;
+  } finally {
+    $('go').disabled = false; $('go').textContent = '生成并放进去';
+  }
+};
+
+init();
+</script>
+</body>
+</html>
