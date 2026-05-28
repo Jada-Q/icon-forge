@@ -56,8 +56,6 @@ export function recolorGlyph(inner, { primary, secondary, secondaryOpacity = 1 }
 
 export function compose(style, { glyph, bg, fg, fg2, secondaryOpacity, variant = 'rounded' }) {
   const bgHex = resolveColor(style, bg);
-  const primary = resolveColor(style, fg);
-  const secondary = fg2 ? resolveColor(style, fg2) : null;
   const { size: S, cx, cy, tileR, scale, gx, gy } = placement(style, glyph, variant);
 
   const tileShape =
@@ -65,10 +63,18 @@ export function compose(style, { glyph, bg, fg, fg2, secondaryOpacity, variant =
       ? `<rect x="0" y="0" width="${S}" height="${S}" fill="${bgHex}"/>`
       : `<path d="${squirclePath(cx, cy, tileR)}" fill="${bgHex}"/>`;
 
-  const recolored = recolorGlyph(glyph.inner, { primary, secondary, secondaryOpacity });
+  // 彩色库：保留原色直接放；单色库：按调色板重上色
+  let inner;
+  if (glyph.kind === 'color') {
+    inner = glyph.inner;
+  } else {
+    const primary = resolveColor(style, fg);
+    const secondary = fg2 ? resolveColor(style, fg2) : null;
+    inner = recolorGlyph(glyph.inner, { primary, secondary, secondaryOpacity });
+  }
   const glyphLayer =
     `<g transform="translate(${gx.toFixed(2)} ${gy.toFixed(2)}) scale(${scale.toFixed(4)})">` +
-    `${recolored}</g>`;
+    `${inner}</g>`;
 
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" width="${S}" height="${S}" viewBox="0 0 ${S} ${S}">` +
